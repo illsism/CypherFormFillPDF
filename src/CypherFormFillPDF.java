@@ -6,9 +6,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-//import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.json.simple.JSONObject;
@@ -91,6 +91,7 @@ public class CypherFormFillPDF {
 			formFields = _acroForm.getFields();
 		} catch (NullPointerException e) {
 			formFields = new ArrayList<PDField>();
+			System.out.println("Exception in _acroForm.getFields()");
 		}
 		
 		Iterator<PDField> iter = formFields.iterator();
@@ -101,13 +102,28 @@ public class CypherFormFillPDF {
 				setField(key, _jsonObject.get(key).toString());
 			}
 
-//			pdField.getCOSObject().setInt(COSName.R, _pdfDocument.getPage(0).getRotation());
-//			System.out.println("field Rotation: " + pdField.getCOSObject().getInt(COSName.R, 0));
-			pdField.setReadOnly(true);
+			removeBorder(pdField);
 		}
 		
-		if(_acroForm != null && _acroForm.getDefaultResources() != null) {
-			_acroForm.refreshAppearances(filteredFields(formFields));
+		try {
+	//		some forms will not show the field content unless clicked in the field. But setting it readonly already made it unclickable
+	//		so it will appear empty. Refreshing appearences fixes this
+			if(_acroForm != null && _acroForm.getDefaultResources() != null) {
+				_acroForm.refreshAppearances(filteredFields(formFields));
+			}
+		} catch (NullPointerException e) {
+			System.out.println("Exception in _acroForm.refreshAppearances() \n " + e.getMessage());
+		} catch (Exception e) {
+			System.out.println("Exception in _acroForm.refreshAppearances() \n " + e.getMessage());
+		}
+	}
+
+	private static void removeBorder(PDField pdField) {
+		List<PDAnnotationWidget> widgets = pdField.getWidgets();
+		Iterator<PDAnnotationWidget> widgetIter = widgets.iterator();
+		while (widgetIter.hasNext()) {
+			PDAnnotationWidget widget = widgetIter.next();
+			widget.setBorderStyle(null);
 		}
 	}
 
@@ -126,7 +142,7 @@ public class CypherFormFillPDF {
         PDField field = _acroForm.getField( name );
         if( field != null ) {
             field.setValue(value);
-//            field.setReadOnly(true);
+            field.setReadOnly(true);
         }
         else {
             System.err.println( "No field found with name:" + name );
