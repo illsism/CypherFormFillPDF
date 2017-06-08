@@ -5,12 +5,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Pattern;
 
+import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
+import org.apache.pdfbox.pdmodel.PDResources;
+import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
+import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -139,9 +145,31 @@ public class CypherFormFillPDF {
 	}
 
 	private static void setField(String name, String value ) throws IOException {
-        PDField field = _acroForm.getField( name );
+        PDTextField field = (PDTextField) _acroForm.getField( name );
+        
         if( field != null ) {
-            field.setValue(value);
+        	try {
+        		field.setValue(value);
+        	} catch (IllegalArgumentException e) {
+        		String fontStyle = field.getDefaultAppearance(); 
+        		PDFont font;
+        		String fontSize = fontStyle.split(" ")[1];
+        		if (!fontSize.matches("^\\d+$"))
+        			fontSize = "0";
+        		System.out.println(fontSize);
+        		if (fontStyle.matches(".*[Bb]old.*"))
+        			font =  PDType0Font.load(_pdfDocument, new File("assets/LiberationSans-Bold.ttf"));
+        		else
+        			font =  PDType0Font.load(_pdfDocument, new File("assets/LiberationSans-Regular.ttf"));
+        		PDResources formResources = _acroForm.getDefaultResources();
+        		COSName fontName = formResources.add(font);
+        		_acroForm.setDefaultResources(formResources);
+        		String da = "/" + fontName.getName() +  " " + fontSize + " Tf 0 g";
+        		_acroForm.setDefaultAppearance(da);
+        		field.setDefaultAppearance(da);
+        		field.setValue(value);
+        		System.out.println("Exception in setValue() \n " + e.getMessage());
+        	}
             field.setReadOnly(true);
         }
         else {
