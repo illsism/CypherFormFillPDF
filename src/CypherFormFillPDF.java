@@ -1,7 +1,9 @@
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -150,17 +152,22 @@ public class CypherFormFillPDF {
         if( field != null ) {
         	try {
         		field.setValue(value);
-        	} catch (IllegalArgumentException e) {
-        		String fontStyle = field.getDefaultAppearance(); 
+        	} catch (UnsupportedOperationException | IllegalArgumentException | NullPointerException e) {
+        		
+        		String fontStyle = field.getDefaultAppearance();
         		PDFont font;
         		String fontSize = fontStyle.split(" ")[1];
         		if (!fontSize.matches("^\\d+$"))
         			fontSize = "0";
         		System.out.println(fontSize);
-        		if (fontStyle.matches(".*[Bb]old.*"))
-        			font =  PDType0Font.load(_pdfDocument, new File("assets/LiberationSans-Bold.ttf"));
-        		else
-        			font =  PDType0Font.load(_pdfDocument, new File("assets/LiberationSans-Regular.ttf"));
+        		InputStream in;
+        		if (fontStyle.matches(".*[Bb]old.*")){
+        			in = ClassLoader.getSystemResourceAsStream("Roboto-Bold.ttf");
+        			font =  PDType0Font.load(_pdfDocument, in, false);
+        		} else {
+        			in = ClassLoader.getSystemResourceAsStream("Roboto-Regular.ttf");
+        			font =  PDType0Font.load(_pdfDocument, in, false);
+        		}
         		PDResources formResources = _acroForm.getDefaultResources();
         		COSName fontName = formResources.add(font);
         		_acroForm.setDefaultResources(formResources);
@@ -169,7 +176,7 @@ public class CypherFormFillPDF {
         		field.setDefaultAppearance(da);
         		field.setValue(value);
         		System.out.println("Exception in setValue() \n " + e.getMessage());
-        	}
+        	}   	
             field.setReadOnly(true);
         }
         else {
