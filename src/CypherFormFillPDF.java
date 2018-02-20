@@ -162,10 +162,10 @@ public class CypherFormFillPDF {
         		System.out.println(fontSize);
         		InputStream in;
         		if (fontStyle.matches(".*[Bb]old.*")){
-        			in = ClassLoader.getSystemResourceAsStream("Roboto-Bold.ttf");
+        			in = ClassLoader.getSystemResourceAsStream("FreeSerifBold.ttf");
         			font =  PDType0Font.load(_pdfDocument, in, false);
         		} else {
-        			in = ClassLoader.getSystemResourceAsStream("Roboto-Regular.ttf");
+        			in = ClassLoader.getSystemResourceAsStream("FreeSerif.ttf");
         			font =  PDType0Font.load(_pdfDocument, in, false);
         		}
         		PDResources formResources = _acroForm.getDefaultResources();
@@ -174,7 +174,18 @@ public class CypherFormFillPDF {
         		String da = "/" + fontName.getName() +  " " + fontSize + " Tf 0 g";
         		_acroForm.setDefaultAppearance(da);
         		field.setDefaultAppearance(da);
-        		field.setValue(value);
+        		try {
+        			field.setValue(value);
+        		} catch (IllegalArgumentException ex) {
+        			in = ClassLoader.getSystemResourceAsStream("unifont_10007.ttf");
+        			font =  PDType0Font.load(_pdfDocument, in, false);
+        			fontName = formResources.add(font);
+            		_acroForm.setDefaultResources(formResources);
+            		da = "/" + fontName.getName() +  " " + fontSize + " Tf 0 g";
+            		_acroForm.setDefaultAppearance(da);
+            		field.setDefaultAppearance(da);
+            		field.setValue(value);
+        		}
         		System.out.println("Exception in setValue() \n " + e.getMessage());
         	}   	
             field.setReadOnly(true);
